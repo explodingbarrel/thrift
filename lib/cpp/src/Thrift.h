@@ -21,6 +21,7 @@
 #define _THRIFT_THRIFT_H_ 1
 
 #include <stdint.h>
+#include <netinet/in.h>
 
 #ifdef _WIN32
 #include "windows/config.h"
