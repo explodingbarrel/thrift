@@ -18,7 +18,6 @@
  */
 
 namespace cpp test.stress
-namespace d thrift.test.stress
 
 service Service {
 

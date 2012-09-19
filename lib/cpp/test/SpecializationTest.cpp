@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cmath>
-#include <thrift/transport/TTransportUtils.h>
-#include <thrift/protocol/TBinaryProtocol.h>
+#include <transport/TTransportUtils.h>
+#include <protocol/TBinaryProtocol.h>
 #include <gen-cpp/DebugProtoTest_types.h>
 
 using std::cout;

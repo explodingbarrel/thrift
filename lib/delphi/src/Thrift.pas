@@ -25,12 +25,12 @@ uses
   SysUtils, Thrift.Protocol;
 
 const
-  Version = '0.9.0-dev';
+  Version = '0.8.0';
 
 type
   IProcessor = interface
     ['{B1538A07-6CAC-4406-8A4C-AFED07C70A89}']
-    function Process( const iprot :IProtocol; const oprot: IProtocol): Boolean;
+    function Process( iprot :IProtocol; oprot: IProtocol): Boolean;
   end;
 
   TApplicationException = class( SysUtils.Exception )
@@ -53,8 +53,8 @@ type
     constructor Create( AType: TExceptionType); overload;
     constructor Create( AType: TExceptionType; const msg: string); overload;
 
-    class function Read( const iprot: IProtocol): TApplicationException;
-    procedure Write( const oprot: IProtocol );
+    class function Read( iprot: IProtocol): TApplicationException;
+    procedure Write( oprot: IProtocol );
   end;
 
   // base class for IDL-generated exceptions
@@ -102,7 +102,8 @@ begin
   FType := AType;
 end;
 
-class function TApplicationException.Read( const iprot: IProtocol): TApplicationException;
+class function TApplicationException.Read(
+  iprot: IProtocol): TApplicationException;
 var
   field : IField;
   msg : string;
@@ -148,7 +149,7 @@ begin
   Result := TApplicationException.Create( typ, msg );
 end;
 
-procedure TApplicationException.Write( const oprot: IProtocol);
+procedure TApplicationException.Write(oprot: IProtocol);
 var
   struc : IStruct;
   field : IField;

@@ -28,7 +28,6 @@ import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-import org.apache.thrift.transport.TTransportFactory;
 
 import thrift.test.ThriftTest;
 
@@ -36,18 +35,14 @@ public class TestNonblockingServer extends ServerTestBase {
 
   private Thread serverThread;
   private TServer server;
-  private static final int NUM_QUERIES = 1000;
+  private static final int NUM_QUERIES = 10000;
 
-  protected TServer getServer(TProcessor processor, TNonblockingServerSocket socket, TProtocolFactory protoFactory, TTransportFactory factory) {
-    final Args args = new Args(socket).processor(processor).protocolFactory(protoFactory);
-    if (factory != null) {
-      args.transportFactory(factory);
-    }
-    return new TNonblockingServer(args);
+  protected TServer getServer(TProcessor processor, TNonblockingServerSocket socket, TProtocolFactory protoFactory) {
+    return new TNonblockingServer(new Args(socket).processor(processor).protocolFactory(protoFactory));
   }
 
   @Override
-  public void startServer(final TProcessor processor, final TProtocolFactory protoFactory, final TTransportFactory factory) throws Exception {
+  public void startServer(final TProcessor processor, final TProtocolFactory protoFactory) throws Exception {
     serverThread = new Thread() {
       public void run() {
         try {
@@ -55,7 +50,7 @@ public class TestNonblockingServer extends ServerTestBase {
           TNonblockingServerSocket tServerSocket =
             new TNonblockingServerSocket(PORT);
 
-          server = getServer(processor, tServerSocket, protoFactory, factory);
+          server = getServer(processor, tServerSocket, protoFactory);
 
           // Run it
           System.out.println("Starting the server on port " + PORT + "...");

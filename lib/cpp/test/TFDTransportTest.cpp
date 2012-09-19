@@ -19,8 +19,8 @@
 
 #include <cstdlib>
 #include <stdexcept>
-#include <thrift/Thrift.h>
-#include <thrift/transport/TFDTransport.h>
+#include <Thrift.h>
+#include <transport/TFDTransport.h>
 using apache::thrift::transport::TTransportException;
 using apache::thrift::transport::TFDTransport;
 

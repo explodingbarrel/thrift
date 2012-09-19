@@ -154,9 +154,9 @@ public:
   void generate_union_hashcode(ofstream& out, t_struct* tstruct);
 
   void generate_scheme_map(ofstream& out, t_struct* tstruct);
-  void generate_standard_writer(ofstream& out, t_struct* tstruct, bool is_result);
+  void generate_standard_writer(ofstream& out, t_struct* tstruct);
   void generate_standard_reader(ofstream& out, t_struct* tstruct);
-  void generate_java_struct_standard_scheme(ofstream& out, t_struct* tstruct, bool is_result);
+  void generate_java_struct_standard_scheme(ofstream& out, t_struct* tstruct);
 
   void generate_java_struct_tuple_scheme(ofstream& out, t_struct* tstruct);
   void generate_java_struct_tuple_reader(ofstream& out, t_struct* tstruct);
@@ -240,8 +240,7 @@ public:
   void generate_deep_copy_container(std::ofstream& out, std::string source_name_p1, std::string source_name_p2, std::string result_name, t_type* type);
   void generate_deep_copy_non_container(std::ofstream& out, std::string source_name, std::string dest_name, t_type* type);
 
-  enum isset_type { ISSET_NONE, ISSET_PRIMITIVE, ISSET_BITSET };
-  isset_type needs_isset(t_struct* tstruct, std::string *outPrimitiveType = NULL);
+  bool has_bit_vector(t_struct* tstruct);
 
   /**
    * Helper rendering functions
@@ -353,9 +352,6 @@ string t_java_generator::java_type_imports() {
     "import org.apache.thrift.scheme.StandardScheme;\n\n" +
     "import org.apache.thrift.scheme.TupleScheme;\n" +
     "import org.apache.thrift.protocol.TTupleProtocol;\n" +
-    "import org.apache.thrift.protocol.TProtocolException;\n" +
-    "import org.apache.thrift.EncodingUtils;\n" +
-    "import org.apache.thrift.TException;\n" +
     "import java.util.List;\n" +
     "import java.util.ArrayList;\n" +
     "import java.util.Map;\n" +
@@ -487,7 +483,7 @@ void t_java_generator::generate_consts(std::vector<t_const*> consts) {
     return;
   }
 
-  string f_consts_name = package_dir_+ '/' + program_name_ + "Constants.java";
+  string f_consts_name = package_dir_+"/Constants.java";
   ofstream f_consts;
   f_consts.open(f_consts_name.c_str());
 
@@ -498,7 +494,7 @@ void t_java_generator::generate_consts(std::vector<t_const*> consts) {
     java_type_imports();
 
   f_consts <<
-    "public class " << program_name_ << "Constants {" << endl <<
+    "public class Constants {" << endl <<
     endl;
   indent_up();
   vector<t_const*>::iterator c_iter;
@@ -1084,7 +1080,7 @@ void t_java_generator::generate_tuple_scheme_read_value(ofstream& out, t_struct*
   indent_down();
   indent(out) << "} else {" << endl;
   indent_up();
-  indent(out) << "throw new TProtocolException(\"Couldn't find a field with field id \" + fieldID);" << endl;
+  indent(out) << "return null;" << endl;
   indent_down();
   indent(out) << "}" << endl;
   indent_down();
@@ -1243,7 +1239,7 @@ void t_java_generator::generate_java_struct_definition(ofstream &out,
     (in_class ? "static " : "") << "class " << tstruct->get_name() << " ";
 
   if (is_exception) {
-    out << "extends TException ";
+    out << "extends Exception ";
   }
   out << "implements org.apache.thrift.TBase<" << tstruct->get_name() << ", " << tstruct->get_name() << "._Fields>, java.io.Serializable, Cloneable";
 
@@ -1300,18 +1296,9 @@ void t_java_generator::generate_java_struct_definition(ofstream &out,
       }
     }
 
-    std::string primitiveType;
-    switch(needs_isset(tstruct, &primitiveType)) {
-    case ISSET_NONE:
-      break;
-    case ISSET_PRIMITIVE:
-      indent(out) << "private " << primitiveType << " __isset_bitfield = 0;" << endl;
-      break;
-    case ISSET_BITSET:
+    if (i > 0) {
       indent(out) << "private BitSet __isset_bit_vector = new BitSet(" << i << ");" << endl;
-      break;
     }
-
     if (optionals > 0) {
       std::string output_string = "private _Fields optionals[] = {";
       for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
@@ -1383,16 +1370,9 @@ void t_java_generator::generate_java_struct_definition(ofstream &out,
   indent(out) << "public " << tstruct->get_name() << "(" << tstruct->get_name() << " other) {" << endl;
   indent_up();
 
-  switch(needs_isset(tstruct)) {
-  case ISSET_NONE:
-    break;
-  case ISSET_PRIMITIVE:
-    indent(out) << "__isset_bitfield = other.__isset_bitfield;" << endl;
-    break;
-  case ISSET_BITSET:
+  if (has_bit_vector(tstruct)) {
     indent(out) << "__isset_bit_vector.clear();" << endl;
     indent(out) << "__isset_bit_vector.or(other.__isset_bit_vector);" << endl;    
-    break;
   }
 
   for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
@@ -1451,7 +1431,7 @@ void t_java_generator::generate_java_struct_definition(ofstream &out,
   generate_java_struct_write_object(out, tstruct);
   generate_java_struct_read_object(out, tstruct);
 
-  generate_java_struct_standard_scheme(out, tstruct, is_result);
+  generate_java_struct_standard_scheme(out, tstruct);
   generate_java_struct_tuple_scheme(out, tstruct);
 
   scope_down(out);
@@ -1658,16 +1638,6 @@ void t_java_generator::generate_java_validator(ofstream& out,
     }
   }
 
-  out << indent() << "// check for sub-struct validity" << endl;
-  for (f_iter = fields.begin(); f_iter != fields.end(); ++f_iter) {
-    t_type* type = (*f_iter)->get_type();
-    if (type->is_struct() && ! ((t_struct*)type)->is_union()) {
-      out << indent() << "if (" << (*f_iter)->get_name() << " != null) {" << endl;
-      out << indent() << "  " << (*f_iter)->get_name() << ".validate();" << endl;
-      out << indent() << "}" << endl;
-    }
-  }
-
   indent_down();
   indent(out) << "}" << endl << endl;
 }
@@ -1818,7 +1788,6 @@ void t_java_generator::generate_generic_isset_method(std::ofstream& out, t_struc
  */
 void t_java_generator::generate_java_bean_boilerplate(ofstream& out,
                                                       t_struct* tstruct) {
-  isset_type issetType = needs_isset(tstruct);
   const vector<t_field*>& fields = tstruct->get_members();
   vector<t_field*>::const_iterator f_iter;
   for (f_iter = fields.begin(); f_iter != fields.end(); ++f_iter) {
@@ -1959,8 +1928,6 @@ void t_java_generator::generate_java_bean_boilerplate(ofstream& out,
     indent_up();
     if (type_can_be_null(type)) {
       indent(out) << "this." << field_name << " = null;" << endl;
-    } else if(issetType == ISSET_PRIMITIVE) {
-      indent(out) << "__isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, " << isset_field_id(field) << ");" << endl;
     } else {
       indent(out) << "__isset_bit_vector.clear(" << isset_field_id(field) << ");" << endl;
     }
@@ -1973,8 +1940,6 @@ void t_java_generator::generate_java_bean_boilerplate(ofstream& out,
     indent_up();
     if (type_can_be_null(type)) {
       indent(out) << "return this." << field_name << " != null;" << endl;
-    } else if(issetType == ISSET_PRIMITIVE) {
-      indent(out) << "return EncodingUtils.testBit(__isset_bitfield, " << isset_field_id(field) << ");" << endl;
     } else {
       indent(out) << "return __isset_bit_vector.get(" << isset_field_id(field) << ");" << endl;
     }
@@ -1987,8 +1952,6 @@ void t_java_generator::generate_java_bean_boilerplate(ofstream& out,
       indent(out) << "if (!value) {" << endl;
       indent(out) << "  this." << field_name << " = null;" << endl;
       indent(out) << "}" << endl;
-    } else if(issetType == ISSET_PRIMITIVE) {
-      indent(out) << "__isset_bitfield = EncodingUtils.setBit(__isset_bitfield, " << isset_field_id(field) << ", value);" << endl;
     } else {
       indent(out) << "__isset_bit_vector.set(" << isset_field_id(field) << ", value);" << endl;
     }
@@ -2586,7 +2549,7 @@ void t_java_generator::generate_service_server(t_service* tservice) {
     extends_processor = "org.apache.thrift.TBaseProcessor<I>";
   } else {
     extends = type_name(tservice->get_extends());
-    extends_processor = extends + ".Processor<I>";
+    extends_processor = extends + ".Processor";
   }
 
   // Generate the header portion
@@ -2664,22 +2627,18 @@ void t_java_generator::generate_process_function(t_service* tservice,
   (void) tservice;
   // Open class
   indent(f_service_) <<
-    "public static class " << tfunction->get_name() << "<I extends Iface> extends org.apache.thrift.ProcessFunction<I, " << argsname << "> {" << endl;
+    "private static class " << tfunction->get_name() << "<I extends Iface> extends org.apache.thrift.ProcessFunction<I, " << argsname << "> {" << endl;
   indent_up();
 
   indent(f_service_) << "public " << tfunction->get_name() << "() {" << endl;
   indent(f_service_) << "  super(\"" << tfunction->get_name() << "\");" << endl;
   indent(f_service_) << "}" << endl << endl;
 
-  indent(f_service_) << "public " << argsname << " getEmptyArgsInstance() {" << endl;
+  indent(f_service_) << "protected " << argsname << " getEmptyArgsInstance() {" << endl;
   indent(f_service_) << "  return new " << argsname << "();" << endl;
   indent(f_service_) << "}" << endl << endl;
 
-  indent(f_service_) << "protected boolean isOneway() {" << endl;
-  indent(f_service_) << "  return " << ((tfunction->is_oneway())?"true":"false") << ";" << endl;
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "public " << resultname << " getResult(I iface, " << argsname << " args) throws org.apache.thrift.TException {" << endl;
+  indent(f_service_) << "protected " << resultname << " getResult(I iface, " << argsname << " args) throws org.apache.thrift.TException {" << endl;
   indent_up();
   if (!tfunction->is_oneway()) {
     indent(f_service_) << resultname << " result = new " << resultname << "();" << endl;
@@ -3800,33 +3759,16 @@ void t_java_generator::generate_field_name_constants(ofstream& out, t_struct* ts
   indent(out) << "}" << endl;
 }
 
-t_java_generator::isset_type t_java_generator::needs_isset(t_struct* tstruct, std::string *outPrimitiveType) {
+bool t_java_generator::has_bit_vector(t_struct* tstruct) {
   const vector<t_field*>& members = tstruct->get_members();
   vector<t_field*>::const_iterator m_iter;
 
-  int count = 0;
   for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
     if (!type_can_be_null(get_true_type((*m_iter)->get_type()))) {
-      count++;
+      return true;
     }
   }
-  if(count == 0) {
-    return ISSET_NONE;
-  } else if(count <= 64) {
-    if(outPrimitiveType != NULL) {
-      if(count <= 8)
-        *outPrimitiveType = "byte";
-      else if(count <= 16)
-        *outPrimitiveType = "short";
-      else if(count <= 32)
-        *outPrimitiveType = "int";
-      else if(count <= 64)
-        *outPrimitiveType = "long";
-    }
-    return ISSET_PRIMITIVE;
-  } else {
-    return ISSET_BITSET;
-  }
+  return false;
 }
 
 void t_java_generator::generate_java_struct_clear(std::ofstream& out, t_struct* tstruct) {
@@ -3896,19 +3838,9 @@ void t_java_generator::generate_java_struct_write_object(ofstream& out, t_struct
 void t_java_generator::generate_java_struct_read_object(ofstream& out, t_struct* tstruct) {
   indent(out) << "private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {" << endl;
   indent(out) << "  try {" << endl;
-  if (!tstruct->is_union()) {
-    switch(needs_isset(tstruct)) {
-      case ISSET_NONE:
-        break;
-      case ISSET_PRIMITIVE:
-        indent(out) << "    // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor." << endl;
-        indent(out) << "    __isset_bitfield = 0;" << endl;
-        break;
-      case ISSET_BITSET:
-        indent(out) << "    // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor." << endl;
-        indent(out) << "    __isset_bit_vector = new BitSet(1);" << endl;
-        break;
-    }
+  if (!tstruct->is_union() && has_bit_vector(tstruct)) {
+    indent(out) << "    // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor." << endl;
+    indent(out) << "    __isset_bit_vector = new BitSet(1);" << endl;
   }
   indent(out) << "    read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));" << endl;
   indent(out) << "  } catch (org.apache.thrift.TException te) {" << endl;
@@ -4005,7 +3937,7 @@ void t_java_generator::generate_standard_reader(ofstream& out, t_struct* tstruct
   out << indent() << "}" << endl;	
 }
 
-void t_java_generator::generate_standard_writer(ofstream& out, t_struct* tstruct, bool is_result) {
+void t_java_generator::generate_standard_writer(ofstream& out, t_struct* tstruct) {
   indent_up();
   out <<
     indent() << "public void write(org.apache.thrift.protocol.TProtocol oprot, " << 
@@ -4026,7 +3958,7 @@ void t_java_generator::generate_standard_writer(ofstream& out, t_struct* tstruct
       indent() << "if (struct." << (*f_iter)->get_name() << " != null) {" << endl;
       indent_up();
     }
-    bool optional = ((*f_iter)->get_req() == t_field::T_OPTIONAL) || (is_result && !null_allowed);
+    bool optional = (*f_iter)->get_req() == t_field::T_OPTIONAL;
     if (optional) {
       indent(out) << "if (" << "struct." << generate_isset_check((*f_iter)) << ") {" << endl;
       indent_up();
@@ -4059,7 +3991,7 @@ void t_java_generator::generate_standard_writer(ofstream& out, t_struct* tstruct
   indent_down();
 }
 
-void t_java_generator::generate_java_struct_standard_scheme(ofstream& out, t_struct* tstruct, bool is_result){
+void t_java_generator::generate_java_struct_standard_scheme(ofstream& out, t_struct* tstruct){
   indent(out) << "private static class " << tstruct->get_name() << "StandardSchemeFactory implements SchemeFactory {" << endl;
   indent_up();
   indent(out) << "public " << tstruct->get_name() << "StandardScheme getScheme() {" << endl;
@@ -4075,7 +4007,7 @@ void t_java_generator::generate_java_struct_standard_scheme(ofstream& out, t_str
   generate_standard_reader(out, tstruct);
   indent_down();
   out << endl;
-  generate_standard_writer(out, tstruct, is_result);
+  generate_standard_writer(out, tstruct);
 
   out <<
   indent() << "}" << endl <<

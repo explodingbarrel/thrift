@@ -18,7 +18,6 @@
  */
 
 #import "TException.h"
-#import "TObjective-C.h"
 
 @implementation TException
 

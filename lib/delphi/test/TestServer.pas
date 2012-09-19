@@ -42,7 +42,7 @@ type
     type
 
       ITestHandler = interface( TThriftTest.Iface )
-        procedure SetServer( const AServer : IServer );
+        procedure SetServer( AServer : IServer );
       end;
 
       TTestHandlerImpl = class( TInterfacedObject, ITestHandler )
@@ -50,39 +50,39 @@ type
         FServer : IServer;
       protected
         procedure testVoid();
-        function testString(const thing: string): string;
+        function testString(thing: string): string;
         function testByte(thing: ShortInt): ShortInt;
         function testI32(thing: Integer): Integer;
-        function testI64(const thing: Int64): Int64;
-        function testDouble(const thing: Double): Double;
-        function testStruct(const thing: IXtruct): IXtruct;
-        function testNest(const thing: IXtruct2): IXtruct2;
-        function testMap(const thing: IThriftDictionary<Integer, Integer>): IThriftDictionary<Integer, Integer>;
-        function testStringMap(const thing: IThriftDictionary<string, string>): IThriftDictionary<string, string>;
-        function testSet(const thing: IHashSet<Integer>): IHashSet<Integer>;
-        function testList(const thing: IThriftList<Integer>): IThriftList<Integer>;
+        function testI64(thing: Int64): Int64;
+        function testDouble(thing: Double): Double;
+        function testStruct(thing: IXtruct): IXtruct;
+        function testNest(thing: IXtruct2): IXtruct2;
+        function testMap(thing: IThriftDictionary<Integer, Integer>): IThriftDictionary<Integer, Integer>;
+        function testStringMap(thing: IThriftDictionary<string, string>): IThriftDictionary<string, string>;
+        function testSet(thing: IHashSet<Integer>): IHashSet<Integer>;
+        function testList(thing: IThriftList<Integer>): IThriftList<Integer>;
         function testEnum(thing: TNumberz): TNumberz;
-        function testTypedef(const thing: Int64): Int64;
+        function testTypedef(thing: Int64): Int64;
         function testMapMap(hello: Integer): IThriftDictionary<Integer, IThriftDictionary<Integer, Integer>>;
-        function testInsanity(const argument: IInsanity): IThriftDictionary<Int64, IThriftDictionary<TNumberz, IInsanity>>;
-        function testMulti(arg0: ShortInt; arg1: Integer; const arg2: Int64; const arg3: IThriftDictionary<SmallInt, string>; arg4: TNumberz; const arg5: Int64): IXtruct;
-        procedure testException(const arg: string);
-        function testMultiException(const arg0: string; const arg1: string): IXtruct;
+        function testInsanity(argument: IInsanity): IThriftDictionary<Int64, IThriftDictionary<TNumberz, IInsanity>>;
+        function testMulti(arg0: ShortInt; arg1: Integer; arg2: Int64; arg3: IThriftDictionary<SmallInt, string>; arg4: TNumberz; arg5: Int64): IXtruct;
+        procedure testException(arg: string);
+        function testMultiException(arg0: string; arg1: string): IXtruct;
         procedure testOneway(secondsToSleep: Integer);
 
          procedure testStop;
 
-        procedure SetServer( const AServer : IServer );
+        procedure SetServer( AServer : IServer );
       end;
 
-      class procedure Execute( const args: array of string);
+      class procedure Execute( args: array of string);
   end;
 
 implementation
 
 { TTestServer.TTestHandlerImpl }
 
-procedure TTestServer.TTestHandlerImpl.SetServer( const AServer: IServer);
+procedure TTestServer.TTestHandlerImpl.SetServer(AServer: IServer);
 begin
   FServer := AServer;
 end;
@@ -93,7 +93,7 @@ begin
   Result := thing;
 end;
 
-function TTestServer.TTestHandlerImpl.testDouble( const thing: Double): Double;
+function TTestServer.TTestHandlerImpl.testDouble(thing: Double): Double;
 begin
   Console.WriteLine('testDouble("' + FloatToStr( thing ) + '")');
   Result := thing;
@@ -105,20 +105,19 @@ begin
   Result := thing;
 end;
 
-procedure TTestServer.TTestHandlerImpl.testException(const arg: string);
+procedure TTestServer.TTestHandlerImpl.testException(arg: string);
+var
+  x : TXception;
 begin
   Console.WriteLine('testException(' + arg + ')');
   if ( arg = 'Xception') then
   begin
-    raise TXception.Create( 1001, arg);
+    x := TXception.Create;
+    x.ErrorCode := 1001;
+    x.Message_ := 'This is an Xception';
+    x.UpdateMessageProperty;
+    raise x;
   end;
-
-  if (arg = 'TException') then
-  begin
-    raise TException.Create('');
-  end;
-
-  // else do not throw anything
 end;
 
 function TTestServer.TTestHandlerImpl.testI32(thing: Integer): Integer;
@@ -127,14 +126,14 @@ begin
   Result := thing;
 end;
 
-function TTestServer.TTestHandlerImpl.testI64( const thing: Int64): Int64;
+function TTestServer.TTestHandlerImpl.testI64(thing: Int64): Int64;
 begin
   Console.WriteLine('testI64("' + IntToStr( thing) + '")');
   Result := thing;
 end;
 
 function TTestServer.TTestHandlerImpl.testInsanity(
-  const argument: IInsanity): IThriftDictionary<Int64, IThriftDictionary<TNumberz, IInsanity>>;
+  argument: IInsanity): IThriftDictionary<Int64, IThriftDictionary<TNumberz, IInsanity>>;
 var
   hello, goodbye : IXtruct;
   crazy : IInsanity;
@@ -147,7 +146,7 @@ begin
 
   Console.WriteLine('testInsanity()');
   hello := TXtructImpl.Create;
-  hello.String_thing := 'Hello2';
+  hello.String_thing := 'hello';
   hello.Byte_thing := 2;
   hello.I32_thing := 2;
   hello.I64_thing := 2;
@@ -171,7 +170,7 @@ begin
   first_map := TThriftDictionaryImpl<TNumberz, IInsanity>.Create;
   second_map := TThriftDictionaryImpl<TNumberz, IInsanity>.Create;
 
-  first_map.AddOrSetValue( TNumberz.TWO, crazy);
+  first_map.AddOrSetValue( TNumberz.SIX, crazy);
   first_map.AddOrSetValue( TNumberz.THREE, crazy);
 
   second_map.AddOrSetValue( TNumberz.SIX, looney);
@@ -185,7 +184,7 @@ begin
 end;
 
 function TTestServer.TTestHandlerImpl.testList(
-  const thing: IThriftList<Integer>): IThriftList<Integer>;
+  thing: IThriftList<Integer>): IThriftList<Integer>;
 var
   first : Boolean;
   elem : Integer;
@@ -208,7 +207,7 @@ begin
 end;
 
 function TTestServer.TTestHandlerImpl.testMap(
-  const thing: IThriftDictionary<Integer, Integer>): IThriftDictionary<Integer, Integer>;
+  thing: IThriftDictionary<Integer, Integer>): IThriftDictionary<Integer, Integer>;
 var
   first : Boolean;
   key : Integer;
@@ -256,8 +255,8 @@ begin
 end;
 
 function TTestServer.TTestHandlerImpl.testMulti(arg0: ShortInt; arg1: Integer;
-  const arg2: Int64; const arg3: IThriftDictionary<SmallInt, string>;
-  arg4: TNumberz; const arg5: Int64): IXtruct;
+  arg2: Int64; arg3: IThriftDictionary<SmallInt, string>; arg4: TNumberz;
+  arg5: Int64): IXtruct;
 var
   hello : IXtruct;
 begin
@@ -270,18 +269,24 @@ begin
   Result := hello;
 end;
 
-function TTestServer.TTestHandlerImpl.testMultiException( const arg0, arg1: string): IXtruct;
+function TTestServer.TTestHandlerImpl.testMultiException(arg0,
+  arg1: string): IXtruct;
 var
+  x : TXception;
   x2 : TXception2;
 begin
   Console.WriteLine('testMultiException(' + arg0 + ', ' + arg1 + ')');
   if ( arg0 = 'Xception') then
   begin
-    raise TXception.Create( 1001, 'This is an Xception');  // test the new rich CTOR 
+    x := TXception.Create;
+    x.ErrorCode := 1001;
+    x.Message_ := 'This is an Xception';
+    x.UpdateMessageProperty;
+    raise x;
   end else
   if ( arg0 = 'Xception2') then
   begin
-    x2 := TXception2.Create;  // the old way still works too?
+    x2 := TXception2.Create;
     x2.ErrorCode := 2002;
     x2.Struct_thing := TXtructImpl.Create;
     x2.Struct_thing.String_thing := 'This is an Xception2';
@@ -293,7 +298,7 @@ begin
   Result.String_thing := arg1;
 end;
 
-function TTestServer.TTestHandlerImpl.testNest( const thing: IXtruct2): IXtruct2;
+function TTestServer.TTestHandlerImpl.testNest(thing: IXtruct2): IXtruct2;
 var
   temp : IXtruct;
 begin
@@ -316,7 +321,7 @@ begin
 end;
 
 function TTestServer.TTestHandlerImpl.testSet(
-  const thing: IHashSet<Integer>):IHashSet<Integer>;
+  thing: IHashSet<Integer>):IHashSet<Integer>;
 var
   first : Boolean;
   elem : Integer;
@@ -347,36 +352,19 @@ begin
   end;
 end;
 
-function TTestServer.TTestHandlerImpl.testString( const thing: string): string;
+function TTestServer.TTestHandlerImpl.testString(thing: string): string;
 begin
   Console.WriteLine('teststring("' + thing + '")');
   Result := thing;
 end;
 
 function TTestServer.TTestHandlerImpl.testStringMap(
-  const thing: IThriftDictionary<string, string>): IThriftDictionary<string, string>;
-var
-  first : Boolean;
-  key : string;
+  thing: IThriftDictionary<string, string>): IThriftDictionary<string, string>;
 begin
-  Console.Write('testStringMap({');
-  first := True;
-  for key in thing.Keys do
-  begin
-    if (first) then
-    begin
-      first := false;
-    end else
-    begin
-      Console.Write(', ');
-    end;
-    Console.Write(key + ' => ' + thing[key]);
-  end;
-  Console.WriteLine('})');
-  Result := thing;
+
 end;
 
-function TTestServer.TTestHandlerImpl.testTypedef( const thing: Int64): Int64;
+function TTestServer.TTestHandlerImpl.testTypedef(thing: Int64): Int64;
 begin
   Console.WriteLine('testTypedef(' + IntToStr( thing) + ')');
   Result := thing;
@@ -387,7 +375,7 @@ begin
   Console.WriteLine('testVoid()');
 end;
 
-function TTestServer.TTestHandlerImpl.testStruct( const thing: IXtruct): IXtruct;
+function TTestServer.TTestHandlerImpl.testStruct(thing: IXtruct): IXtruct;
 begin
   Console.WriteLine('testStruct({' +
     '"' + thing.String_thing + '", ' +
@@ -399,7 +387,7 @@ end;
 
 { TTestServer }
 
-class procedure TTestServer.Execute( const args: array of string);
+class procedure TTestServer.Execute(args: array of string);
 var
   UseBufferedSockets : Boolean;
   UseFramed : Boolean;

@@ -145,11 +145,11 @@ type
 
   ITransportFactory = interface
     ['{DD809446-000F-49E1-9BFF-E0D0DC76A9D7}']
-    function GetTransport( const ATrans: ITransport): ITransport;
+    function GetTransport( ATrans: ITransport): ITransport;
   end;
 
   TTransportFactoryImpl = class( TInterfacedObject, ITransportFactory)
-    function GetTransport( const ATrans: ITransport): ITransport; virtual;
+    function GetTransport( ATrans: ITransport): ITransport; virtual;
   end;
 
   TTcpSocketStreamImpl = class( TThriftStreamImpl )
@@ -165,7 +165,7 @@ type
     function IsOpen: Boolean; override;
     function ToArray: TBytes; override;
   public
-    constructor Create( const ATcpClient: TCustomIpClient);
+    constructor Create( ATcpClient: TCustomIpClient);
   end;
 
   IStreamTransport = interface( ITransport )
@@ -194,7 +194,7 @@ type
     procedure Flush; override;
     function Read(var buf: TBytes; off: Integer; len: Integer): Integer; override;
     procedure Write( const buf: TBytes; off: Integer; len: Integer); override;
-    constructor Create( const AInputStream : IThriftStream; const AOutputStream : IThriftStream);
+    constructor Create( AInputStream : IThriftStream; AOutputStream : IThriftStream);
     destructor Destroy; override;
   end;
 
@@ -212,7 +212,7 @@ type
     function IsOpen: Boolean; override;
     function ToArray: TBytes; override;
   public
-    constructor Create( const AStream: IThriftStream; ABufSize: Integer);
+    constructor Create( AStream: IThriftStream; ABufSize: Integer);
     destructor Destroy; override;
   end;
 
@@ -226,8 +226,8 @@ type
   protected
     function AcceptImpl: ITransport; override;
   public
-    constructor Create( const AServer: TTcpServer ); overload;
-    constructor Create( const AServer: TTcpServer; AClientTimeout: Integer); overload;
+    constructor Create( AServer: TTcpServer ); overload;
+    constructor Create( AServer: TTcpServer; AClientTimeout: Integer); overload;
     constructor Create( APort: Integer); overload;
     constructor Create( APort: Integer; AClientTimeout: Integer); overload;
     constructor Create( APort: Integer; AClientTimeout: Integer;
@@ -254,8 +254,8 @@ type
     procedure Close(); override;
     function Read(var buf: TBytes; off: Integer; len: Integer): Integer; override;
     procedure Write( const buf: TBytes; off: Integer; len: Integer); override;
-    constructor Create( const ATransport : IStreamTransport ); overload;
-    constructor Create( const ATransport : IStreamTransport; ABufSize: Integer); overload;
+    constructor Create( ATransport : IStreamTransport ); overload;
+    constructor Create( ATransport : IStreamTransport; ABufSize: Integer); overload;
     property UnderlyingTransport: ITransport read GetUnderlyingTransport;
     property IsOpen: Boolean read GetIsOpen;
   end;
@@ -273,7 +273,7 @@ type
     function GetIsOpen: Boolean; override;
   public
     procedure Open; override;
-    constructor Create( const AClient : TCustomIpClient); overload;
+    constructor Create( AClient : TCustomIpClient); overload;
     constructor Create( const AHost: string; APort: Integer); overload;
     constructor Create( const AHost: string; APort: Integer; ATimeout: Integer); overload;
     destructor Destroy; override;
@@ -299,14 +299,14 @@ type
     type
       TFactory = class( TTransportFactoryImpl )
       public
-        function GetTransport( const ATrans: ITransport): ITransport; override;
+        function GetTransport( ATrans: ITransport): ITransport; override;
       end;
 
 {$IF CompilerVersion >= 21.0}
     class constructor Create;
 {$IFEND}
     constructor Create; overload;
-    constructor Create( const ATrans: ITransport); overload;
+    constructor Create( ATrans: ITransport); overload;
     destructor Destroy; override;
 
     procedure Open(); override;
@@ -528,20 +528,20 @@ end;
 
 { TTransportFactoryImpl }
 
-function TTransportFactoryImpl.GetTransport( const ATrans: ITransport): ITransport;
+function TTransportFactoryImpl.GetTransport(ATrans: ITransport): ITransport;
 begin
   Result := ATrans;
 end;
 
 { TServerSocket }
 
-constructor TServerSocketImpl.Create( const AServer: TTcpServer; AClientTimeout: Integer);
+constructor TServerSocketImpl.Create(AServer: TTcpServer; AClientTimeout: Integer);
 begin
   FServer := AServer;
   FClientTimeout := AClientTimeout;
 end;
 
-constructor TServerSocketImpl.Create( const AServer: TTcpServer);
+constructor TServerSocketImpl.Create(AServer: TTcpServer);
 begin
   Create( AServer, 0 );
 end;
@@ -658,7 +658,7 @@ end;
 
 { TSocket }
 
-constructor TSocketImpl.Create( const AClient : TCustomIpClient);
+constructor TSocketImpl.Create(AClient : TCustomIpClient);
 var
   stream : IThriftStream;
 begin
@@ -773,7 +773,7 @@ begin
   FBuffer := nil;
 end;
 
-constructor TBufferedStreamImpl.Create( const AStream: IThriftStream; ABufSize: Integer);
+constructor TBufferedStreamImpl.Create(AStream: IThriftStream; ABufSize: Integer);
 begin
   FStream := AStream;
   FBufSize := ABufSize;
@@ -903,7 +903,7 @@ begin
   end;
 end;
 
-constructor TStreamTransportImpl.Create( const AInputStream : IThriftStream; const AOutputStream : IThriftStream);
+constructor TStreamTransportImpl.Create( AInputStream : IThriftStream; AOutputStream : IThriftStream);
 begin
   FInputStream := AInputStream;
   FOutputStream := AOutputStream;
@@ -967,7 +967,7 @@ end;
 
 { TBufferedTransportImpl }
 
-constructor TBufferedTransportImpl.Create( const ATransport: IStreamTransport);
+constructor TBufferedTransportImpl.Create(ATransport: IStreamTransport);
 begin
   Create( ATransport, 1024 );
 end;
@@ -977,7 +977,7 @@ begin
   FTransport.Close;
 end;
 
-constructor TBufferedTransportImpl.Create( const ATransport: IStreamTransport;
+constructor TBufferedTransportImpl.Create(ATransport: IStreamTransport;
   ABufSize: Integer);
 begin
   FTransport := ATransport;
@@ -1064,7 +1064,7 @@ begin
   FTransport.Close;
 end;
 
-constructor TFramedTransportImpl.Create( const ATrans: ITransport);
+constructor TFramedTransportImpl.Create(ATrans: ITransport);
 begin
   InitWriteBuffer;
   FTransport := ATrans;
@@ -1136,9 +1136,7 @@ var
 begin
   if FReadBuffer <> nil then
   begin
-    if len > 0
-    then got := FReadBuffer.Read( Pointer(@buf[off])^, len )
-    else got := 0;
+    got := FReadBuffer.Read( Pointer(@buf[0])^, len );
     if got > 0 then
     begin
       Result := got;
@@ -1147,9 +1145,7 @@ begin
   end;
 
   ReadFrame;
-  if len > 0
-  then Result := FReadBuffer.Read( Pointer(@buf[off])^, len)
-  else Result := 0;
+  Result := FReadBuffer.Read( Pointer(@buf[0])^, len );
 end;
 
 procedure TFramedTransportImpl.ReadFrame;
@@ -1175,13 +1171,12 @@ end;
 
 procedure TFramedTransportImpl.Write(const buf: TBytes; off, len: Integer);
 begin
-  if len > 0
-  then FWriteBuffer.Write( Pointer(@buf[off])^, len );
+  FWriteBuffer.Write( Pointer(@buf[0])^, len );
 end;
 
 { TFramedTransport.TFactory }
 
-function TFramedTransportImpl.TFactory.GetTransport( const ATrans: ITransport): ITransport;
+function TFramedTransportImpl.TFactory.GetTransport(ATrans: ITransport): ITransport;
 begin
   Result := TFramedTransportImpl.Create( ATrans );
 end;
@@ -1193,7 +1188,7 @@ begin
   FTcpClient.Close;
 end;
 
-constructor TTcpSocketStreamImpl.Create( const ATcpClient: TCustomIpClient);
+constructor TTcpSocketStreamImpl.Create(ATcpClient: TCustomIpClient);
 begin
   FTcpClient := ATcpClient;
 end;

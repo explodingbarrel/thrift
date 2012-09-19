@@ -28,11 +28,7 @@
 #define __STDC_LIMIT_MACROS
 #define __STDC_FORMAT_MACROS
 #include <stdio.h>
-#ifndef _MSC_VER
 #include <inttypes.h>
-#else
-#include <stdint.h>
-#endif
 #include <limits.h>
 #include "main.h"
 #include "globals.h"
@@ -504,15 +500,11 @@ TypeDefinition:
     }
 
 Typedef:
-  tok_typedef FieldType tok_identifier TypeAnnotations
+  tok_typedef FieldType tok_identifier
     {
       pdebug("TypeDef -> tok_typedef FieldType tok_identifier");
       t_typedef *td = new t_typedef(g_program, $2, $3);
       $$ = td;
-      if ($4 != NULL) {
-        $$->annotations_ = $4->annotations_;
-        delete $4;
-      }
     }
 
 CommaOrSemicolonOptional:
@@ -524,15 +516,11 @@ CommaOrSemicolonOptional:
     {}
 
 Enum:
-  tok_enum tok_identifier '{' EnumDefList '}' TypeAnnotations
+  tok_enum tok_identifier '{' EnumDefList '}'
     {
       pdebug("Enum -> tok_enum tok_identifier { EnumDefList }");
       $$ = $4;
       $$->set_name($2);
-      if ($6 != NULL) {
-        $$->annotations_ = $6->annotations_;
-        delete $6;
-      }
       $$->resolve_values();
       // make constants for all the enum values
       if (g_parse_mode == PROGRAM) {
@@ -564,7 +552,7 @@ EnumDefList:
     }
 
 EnumDef:
-  CaptureDocText tok_identifier '=' tok_int_constant TypeAnnotations CommaOrSemicolonOptional
+  CaptureDocText tok_identifier '=' tok_int_constant CommaOrSemicolonOptional
     {
       pdebug("EnumDef -> tok_identifier = tok_int_constant");
       if ($4 < 0) {
@@ -577,34 +565,22 @@ EnumDef:
       if ($1 != NULL) {
         $$->set_doc($1);
       }
-      if ($5 != NULL) {
-        $$->annotations_ = $5->annotations_;
-        delete $5;
-      }
     }
 |
-  CaptureDocText tok_identifier TypeAnnotations CommaOrSemicolonOptional
+  CaptureDocText tok_identifier CommaOrSemicolonOptional
     {
       pdebug("EnumDef -> tok_identifier");
       $$ = new t_enum_value($2);
       if ($1 != NULL) {
         $$->set_doc($1);
       }
-      if ($3 != NULL) {
-        $$->annotations_ = $3->annotations_;
-        delete $3;
-      }
     }
 
 Senum:
-  tok_senum tok_identifier '{' SenumDefList '}' TypeAnnotations
+  tok_senum tok_identifier '{' SenumDefList '}'
     {
       pdebug("Senum -> tok_senum tok_identifier { SenumDefList }");
       $$ = new t_typedef(g_program, $4, $2);
-      if ($6 != NULL) {
-        $$->annotations_ = $6->annotations_;
-        delete $6;
-      }
     }
 
 SenumDefList:
@@ -791,29 +767,21 @@ XsdAttributes:
     }
 
 Xception:
-  tok_xception tok_identifier '{' FieldList '}' TypeAnnotations
+  tok_xception tok_identifier '{' FieldList '}'
     {
       pdebug("Xception -> tok_xception tok_identifier { FieldList }");
       $4->set_name($2);
       $4->set_xception(true);
       $$ = $4;
-      if ($6 != NULL) {
-        $$->annotations_ = $6->annotations_;
-        delete $6;
-      }
     }
 
 Service:
-  tok_service tok_identifier Extends '{' FlagArgs FunctionList UnflagArgs '}' TypeAnnotations
+  tok_service tok_identifier Extends '{' FlagArgs FunctionList UnflagArgs '}'
     {
       pdebug("Service -> tok_service tok_identifier { FunctionList }");
       $$ = $6;
       $$->set_name($2);
       $$->set_extends($3);
-      if ($9 != NULL) {
-        $$->annotations_ = $9->annotations_;
-        delete $9;
-      }
     }
 
 FlagArgs:
@@ -858,16 +826,12 @@ FunctionList:
     }
 
 Function:
-  CaptureDocText Oneway FunctionType tok_identifier '(' FieldList ')' Throws TypeAnnotations CommaOrSemicolonOptional
+  CaptureDocText Oneway FunctionType tok_identifier '(' FieldList ')' Throws CommaOrSemicolonOptional
     {
       $6->set_name(std::string($4) + "_args");
       $$ = new t_function($3, $4, $6, $8, $2);
       if ($1 != NULL) {
         $$->set_doc($1);
-      }
-      if ($9 != NULL) {
-        $$->annotations_ = $9->annotations_;
-        delete $9;
       }
     }
 

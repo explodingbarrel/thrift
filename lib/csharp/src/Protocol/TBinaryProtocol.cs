@@ -201,12 +201,7 @@ namespace Thrift.Protocol
 
 		public override void WriteDouble(double d)
 		{
-#if !SILVERLIGHT
 			WriteI64(BitConverter.DoubleToInt64Bits(d));
-#else
-            var bytes = BitConverter.GetBytes(d);
-            WriteI64(BitConverter.ToInt64(bytes, 0));
-#endif
 		}
 
 		public override void WriteBinary(byte[] b)
@@ -353,13 +348,7 @@ namespace Thrift.Protocol
 
 		public override double ReadDouble()
 		{
-#if !SILVERLIGHT
 			return BitConverter.Int64BitsToDouble(ReadI64());
-#else
-            var value = ReadI64();
-            var bytes = BitConverter.GetBytes(value);
-            return BitConverter.ToDouble(bytes, 0);
-#endif
 		}
 
 		public void SetReadLength(int readLength)
@@ -393,7 +382,7 @@ namespace Thrift.Protocol
 			CheckReadLength(size);
 			byte[] buf = new byte[size];
 			trans.ReadAll(buf, 0, size);
-			return Encoding.UTF8.GetString(buf, 0, buf.Length);
+			return Encoding.UTF8.GetString(buf);
 		}
 
 		private int ReadAll(byte[] buf, int off, int len)

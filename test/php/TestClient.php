@@ -1,23 +1,4 @@
 <?php
-
-namespace test\php;
-
-require_once __DIR__.'/../../lib/php/lib/Thrift/ClassLoader/ThriftClassLoader.php';
-
-use Thrift\ClassLoader\ThriftClassLoader;
-
-if (!isset($GEN_DIR)) {
-  $GEN_DIR = 'gen-php';
-}
-if (!isset($MODE)) {
-  $MODE = 'normal';
-}
-
-$loader = new ThriftClassLoader();
-$loader->registerNamespace('Thrift', __DIR__ . '/../../lib/php/lib');
-$loader->registerDefinition('ThriftTest', $GEN_DIR);
-$loader->register();
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
@@ -37,17 +18,40 @@ $loader->register();
  * under the License.
  */
 
+if (!isset($GEN_DIR)) {
+  $GEN_DIR = 'gen-php';
+}
+if (!isset($MODE)) {
+  $MODE = 'normal';
+}
+
+/** Set the Thrift root */
+$GLOBALS['THRIFT_ROOT'] = '../../lib/php/src';
+
 /** Include the Thrift base */
+require_once $GLOBALS['THRIFT_ROOT'].'/Thrift.php';
+
 /** Include the binary protocol */
-use Thrift\Protocol\TBinaryProtocol;
+require_once $GLOBALS['THRIFT_ROOT'].'/protocol/TBinaryProtocol.php';
 
 /** Include the socket layer */
-use Thrift\Transport\TSocket;
-use Thrift\Transport\TSocketPool;
+require_once $GLOBALS['THRIFT_ROOT'].'/transport/TSocketPool.php';
 
 /** Include the socket layer */
-use Thrift\Transport\TFramedTransport;
-use Thrift\Transport\TBufferedTransport;
+require_once $GLOBALS['THRIFT_ROOT'].'/transport/TFramedTransport.php';
+require_once $GLOBALS['THRIFT_ROOT'].'/transport/TBufferedTransport.php';
+
+echo '==============================='."\n";
+echo ' SAFE TO IGNORE THESE IN TEST'."\n";
+echo '==============================='."\n";
+
+/** Include the generated code */
+require_once $GEN_DIR.'/ThriftTest/ThriftTest.php';
+require_once $GEN_DIR.'/ThriftTest/ThriftTest_types.php';
+
+echo '==============================='."\n";
+echo ' END OF SAFE ERRORS SECTION'."\n";
+echo '==============================='."\n\n";
 
 $host = 'localhost';
 $port = 9090;
@@ -68,17 +72,17 @@ $socket->setDebug(TRUE);
 
 if ($MODE == 'inline') {
   $transport = $socket;
-  $testClient = new \ThriftTest\ThriftTestClient($transport);
+  $testClient = new ThriftTestClient($transport);
 } else if ($MODE == 'framed') {
   $framedSocket = new TFramedTransport($socket);
   $transport = $framedSocket;
   $protocol = new TBinaryProtocol($transport);
-  $testClient = new \ThriftTest\ThriftTestClient($protocol);
+  $testClient = new ThriftTestClient($protocol);
 } else {
   $bufferedSocket = new TBufferedTransport($socket, 1024, 1024);
   $transport = $bufferedSocket;
   $protocol = new TBinaryProtocol($transport);
-  $testClient = new \ThriftTest\ThriftTestClient($protocol);
+  $testClient = new ThriftTestClient($protocol);
 }
 
 $transport->open();
@@ -131,7 +135,7 @@ print_r(" = $dub\n");
  * STRUCT TEST
  */
 print_r("testStruct({\"Zero\", 1, -3, -5})");
-$out = new \ThriftTest\Xtruct();
+$out = new ThriftTest_Xtruct();
 $out->string_thing = "Zero";
 $out->byte_thing = 1;
 $out->i32_thing = -3;
@@ -146,7 +150,7 @@ print_r(" = {\"".$in->string_thing."\", ".
  * NESTED STRUCT TEST
  */
 print_r("testNest({1, {\"Zero\", 1, -3, -5}), 5}");
-$out2 = new \ThriftTest\Xtruct2();
+$out2 = new ThriftTest_Xtruct2();
 $out2->byte_thing = 1;
 $out2->struct_thing = $out;
 $out2->i32_thing = 5;
@@ -301,9 +305,9 @@ print_r("}\n");
 /**
  * INSANITY TEST
  */
-$insane = new \ThriftTest\Insanity();
+$insane = new ThriftTest_Insanity();
 $insane->userMap[ThriftTest_Numberz::FIVE] = 5000;
-$truck = new \ThriftTest\Xtruct();
+$truck = new ThriftTest_Xtruct();
 $truck->string_thing = "Truck";
 $truck->byte_thing = 8;
 $truck->i32_thing = 8;

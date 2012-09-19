@@ -25,7 +25,7 @@ using System;
 
 namespace Thrift.Protocol
 {
-	public class TProtocolException : Exception
+	class TProtocolException : Exception
 	{
 		public const int UNKNOWN = 0;
 		public const int INVALID_DATA = 1;

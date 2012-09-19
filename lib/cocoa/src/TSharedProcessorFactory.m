@@ -19,7 +19,6 @@
 
 
 #import "TSharedProcessorFactory.h"
-#import "TObjective-C.h"
 
 
 @implementation TSharedProcessorFactory
@@ -32,21 +31,21 @@
     return nil;
   }
   
-  mSharedProcessor = [sharedProcessor retain_stub];
+  mSharedProcessor = [sharedProcessor retain];
   return self;
 }
 
 
 - (void) dealloc
 {
-  [mSharedProcessor release_stub];
-  [super dealloc_stub];
+  [mSharedProcessor release];
+  [super dealloc];
 }
 
 
 - (id<TProcessor>) processorForTransport: (id<TTransport>) transport
 {
-  return [[mSharedProcessor retain_stub] autorelease_stub];
+  return [[mSharedProcessor retain] autorelease];
 }
 
 @end

@@ -19,7 +19,6 @@
 
 #import "THTTPClient.h"
 #import "TTransportException.h"
-#import "TObjective-C.h"
 
 @implementation THTTPClient
 
@@ -27,7 +26,7 @@
 - (void) setupRequest
 {
   if (mRequest != nil) {
-    [mRequest release_stub];
+    [mRequest release];
   }
 
   // set up our request object that we'll use for each request
@@ -68,9 +67,9 @@
 
   mTimeout = timeout;
   if (userAgent) {
-    mUserAgent = [userAgent retain_stub];
+    mUserAgent = [userAgent retain];
   }
-  mURL = [aURL retain_stub];
+  mURL = [aURL retain];
 
   [self setupRequest];
 
@@ -83,8 +82,8 @@
 
 - (void) setURL: (NSURL *) aURL
 {
-  [aURL retain_stub];
-  [mURL release_stub];
+  [aURL retain];
+  [mURL release];
   mURL = aURL;
 
   [self setupRequest];
@@ -93,12 +92,12 @@
 
 - (void) dealloc
 {
-  [mURL release_stub];
-  [mUserAgent release_stub];
-  [mRequest release_stub];
-  [mRequestData release_stub];
-  [mResponseData release_stub];
-  [super dealloc_stub];
+  [mURL release];
+  [mUserAgent release];
+  [mRequest release];
+  [mRequestData release];
+  [mResponseData release];
+  [super dealloc];
 }
 
 
@@ -152,8 +151,8 @@
   }
 
   // phew!
-  [mResponseData release_stub];
-  mResponseData = [responseData retain_stub];
+  [mResponseData release];
+  mResponseData = [responseData retain];
   mResponseDataOffset = 0;
 }
 

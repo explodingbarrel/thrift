@@ -23,14 +23,14 @@
 #include <iostream>
 #include <unistd.h>
 #include <sys/time.h>
-#include <thrift/protocol/TBinaryProtocol.h>
-#include <thrift/protocol/TJSONProtocol.h>
-#include <thrift/transport/THttpClient.h>
-#include <thrift/transport/TTransportUtils.h>
-#include <thrift/transport/TSocket.h>
-#include <thrift/transport/TSSLSocket.h>
-#include <thrift/async/TEvhttpClientChannel.h>
-#include <thrift/server/TNonblockingServer.h> // <event.h>
+#include <protocol/TBinaryProtocol.h>
+#include <protocol/TJSONProtocol.h>
+#include <transport/THttpClient.h>
+#include <transport/TTransportUtils.h>
+#include <transport/TSocket.h>
+#include <transport/TSSLSocket.h>
+#include <async/TEvhttpClientChannel.h>
+#include <server/TNonblockingServer.h> // <event.h>
 
 #include <boost/shared_ptr.hpp>
 #include <boost/program_options.hpp>
@@ -82,7 +82,7 @@ static void testVoid_clientReturn(const char* host, int port, event_base *base, 
 
     // next test
     delete client;
-    boost::shared_ptr<TAsyncChannel> channel(new TEvhttpClientChannel(host, "/", host, port, base));
+    shared_ptr<TAsyncChannel> channel(new TEvhttpClientChannel(host, "/", host, port, base));
     client = new ThriftTestCobClient(channel, protocolFactory);
     client->testString(tr1::bind(testString_clientReturn, host, port, base, protocolFactory, std::tr1::placeholders::_1), "Test");
   } catch (TException& exn) {
@@ -149,44 +149,44 @@ int main(int argc, char** argv) {
     ssl = true;
   }
 
-  boost::shared_ptr<TTransport> transport;
-  boost::shared_ptr<TProtocol> protocol;
+  shared_ptr<TTransport> transport;
+  shared_ptr<TProtocol> protocol;
 
-  boost::shared_ptr<TSocket> socket;
-  boost::shared_ptr<TSSLSocketFactory> factory;
+  shared_ptr<TSocket> socket;
+  shared_ptr<TSSLSocketFactory> factory;
 
   if (ssl) {
-    factory = boost::shared_ptr<TSSLSocketFactory>(new TSSLSocketFactory());
+    factory = shared_ptr<TSSLSocketFactory>(new TSSLSocketFactory());
     factory->ciphers("ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
     factory->loadTrustedCertificates("./trusted-ca-certificate.pem");
     factory->authenticate(true);
     socket = factory->createSocket(host, port);
   } else {
     if (domain_socket != "") {
-      socket = boost::shared_ptr<TSocket>(new TSocket(domain_socket));
+      socket = shared_ptr<TSocket>(new TSocket(domain_socket));
       port = 0;
     }
     else {
-      socket = boost::shared_ptr<TSocket>(new TSocket(host, port));
+      socket = shared_ptr<TSocket>(new TSocket(host, port));
     }
   }
 
   if (transport_type.compare("http") == 0) {
-    boost::shared_ptr<TTransport> httpSocket(new THttpClient(socket, host, "/service"));
+    shared_ptr<TTransport> httpSocket(new THttpClient(socket, host, "/service"));
     transport = httpSocket;
   } else if (transport_type.compare("framed") == 0){
-    boost::shared_ptr<TFramedTransport> framedSocket(new TFramedTransport(socket));
+    shared_ptr<TFramedTransport> framedSocket(new TFramedTransport(socket));
     transport = framedSocket;
   } else{
-    boost::shared_ptr<TBufferedTransport> bufferedSocket(new TBufferedTransport(socket));
+    shared_ptr<TBufferedTransport> bufferedSocket(new TBufferedTransport(socket));
     transport = bufferedSocket;
   }
 
   if (protocol_type.compare("json") == 0) {
-    boost::shared_ptr<TProtocol> jsonProtocol(new TJSONProtocol(transport));
+    shared_ptr<TProtocol> jsonProtocol(new TJSONProtocol(transport));
     protocol = jsonProtocol;
   } else{
-    boost::shared_ptr<TBinaryProtocol> binaryProtocol(new TBinaryProtocol(transport));
+    shared_ptr<TBinaryProtocol> binaryProtocol(new TBinaryProtocol(transport));
     protocol = binaryProtocol;
   }
 
@@ -205,9 +205,9 @@ int main(int argc, char** argv) {
     cout << "Libevent Features: 0x" << hex << event_base_get_features(base) << endl;
 #endif
 
-    boost::shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());
+    shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());
 
-    boost::shared_ptr<TAsyncChannel> channel(new TEvhttpClientChannel(host.c_str(), "/", host.c_str(), port, base));
+    shared_ptr<TAsyncChannel> channel(new TEvhttpClientChannel(host.c_str(), "/", host.c_str(), port, base));
     ThriftTestCobClient* client = new ThriftTestCobClient(channel, protocolFactory.get());
     client->testVoid(tr1::bind(testVoid_clientReturn, host.c_str(), port, base, protocolFactory.get(), std::tr1::placeholders::_1));
     
@@ -222,7 +222,6 @@ int main(int argc, char** argv) {
   uint64_t time_max = 0;
   uint64_t time_tot = 0;
 
-  int failCount = 0;
   int test = 0;
   for (test = 0; test < numTests; ++test) {
 
@@ -230,7 +229,7 @@ int main(int argc, char** argv) {
       transport->open();
     } catch (TTransportException& ttx) {
       printf("Connect failed: %s\n", ttx.what());
-      return 1;
+      continue;
     }
 
     /**
@@ -247,9 +246,8 @@ int main(int argc, char** argv) {
       printf("testVoid()");
       testClient.testVoid();
       printf(" = void\n");
-    } catch (TApplicationException& tax) {
+    } catch (TApplicationException tax) {
       printf("%s\n", tax.what());
-      failCount++;
     }
 
     /**
@@ -259,8 +257,6 @@ int main(int argc, char** argv) {
     string s;
     testClient.testString(s, "Test");
     printf(" = \"%s\"\n", s.c_str());
-    if (s != "Test")
-        failCount++;
 
     /**
      * BYTE TEST
@@ -268,8 +264,6 @@ int main(int argc, char** argv) {
     printf("testByte(1)");
     uint8_t u8 = testClient.testByte(1);
     printf(" = %d\n", (int)u8);
-    if (u8 != 1)
-        failCount++;
 
     /**
      * I32 TEST
@@ -277,8 +271,6 @@ int main(int argc, char** argv) {
     printf("testI32(-1)");
     int32_t i32 = testClient.testI32(-1);
     printf(" = %d\n", i32);
-    if (i32 != -1)
-        failCount++;
 
     /**
      * I64 TEST
@@ -286,16 +278,13 @@ int main(int argc, char** argv) {
     printf("testI64(-34359738368)");
     int64_t i64 = testClient.testI64(-34359738368LL);
     printf(" = %"PRId64"\n", i64);
-    if (i64 != -34359738368LL)
-        failCount++;
+
     /**
      * DOUBLE TEST
      */
     printf("testDouble(-5.2098523)");
     double dub = testClient.testDouble(-5.2098523);
     printf(" = %f\n", dub);
-    if ((dub - (-5.2098523)) > 0.001)
-        failCount++;
 
     /**
      * STRUCT TEST
@@ -313,8 +302,6 @@ int main(int argc, char** argv) {
            (int)in.byte_thing,
            in.i32_thing,
            in.i64_thing);
-    if (in != out)
-    	failCount++;
 
     /**
      * NESTED STRUCT TEST
@@ -334,8 +321,6 @@ int main(int argc, char** argv) {
            in.i32_thing,
            in.i64_thing,
            in2.i32_thing);
-    if (in2 != out2)
-    	failCount++;
 
     /**
      * MAP TEST
@@ -369,13 +354,6 @@ int main(int argc, char** argv) {
       printf("%d => %d", m_iter->first, m_iter->second);
     }
     printf("}\n");
-    if (mapin != mapout)
-    	failCount++;
-
-    /**
-     * STRING MAP TEST
-     *  missing
-     */
 
     /**
      * SET TEST
@@ -409,8 +387,6 @@ int main(int argc, char** argv) {
       printf("%d", *s_iter);
     }
     printf("}\n");
-    if (setin != setout)
-    	failCount++;
 
     /**
      * LIST TEST
@@ -444,8 +420,6 @@ int main(int argc, char** argv) {
       printf("%d", *l_iter);
     }
     printf("}\n");
-    if (listin != listout)
-    	failCount++;
 
     /**
      * ENUM TEST
@@ -453,32 +427,22 @@ int main(int argc, char** argv) {
     printf("testEnum(ONE)");
     Numberz::type ret = testClient.testEnum(Numberz::ONE);
     printf(" = %d\n", ret);
-    if (ret != Numberz::ONE)
-    	failCount++;
 
     printf("testEnum(TWO)");
     ret = testClient.testEnum(Numberz::TWO);
     printf(" = %d\n", ret);
-    if (ret != Numberz::TWO)
-    	failCount++;
 
     printf("testEnum(THREE)");
     ret = testClient.testEnum(Numberz::THREE);
     printf(" = %d\n", ret);
-    if (ret != Numberz::THREE)
-    	failCount++;
 
     printf("testEnum(FIVE)");
     ret = testClient.testEnum(Numberz::FIVE);
     printf(" = %d\n", ret);
-    if (ret != Numberz::FIVE)
-    	failCount++;
 
     printf("testEnum(EIGHT)");
     ret = testClient.testEnum(Numberz::EIGHT);
     printf(" = %d\n", ret);
-    if (ret != Numberz::EIGHT)
-    	failCount++;
 
     /**
      * TYPEDEF TEST
@@ -486,8 +450,6 @@ int main(int argc, char** argv) {
     printf("testTypedef(309858235082523)");
     UserId uid = testClient.testTypedef(309858235082523LL);
     printf(" = %"PRId64"\n", uid);
-    if (uid != 309858235082523LL)
-    	failCount++;
 
     /**
      * NESTED MAP TEST
@@ -562,21 +524,10 @@ int main(int argc, char** argv) {
       printf("testClient.testException(\"Xception\") =>");
       testClient.testException("Xception");
       printf("  void\nFAILURE\n");
-      failCount++;
 
     } catch(Xception& e) {
       printf("  {%u, \"%s\"}\n", e.errorCode, e.message.c_str());
     }
-
-    try {
-        printf("testClient.testException(\"TException\") =>");
-        testClient.testException("TException");
-        printf("  void\nFAILURE\n");
-        failCount++;
-
-      } catch(TException& e) {
-        printf("  Caught TException\n");
-      }
 
     try {
       printf("testClient.testException(\"success\") =>");
@@ -584,7 +535,6 @@ int main(int argc, char** argv) {
       printf("  void\n");
     } catch(...) {
       printf("  exception\nFAILURE\n");
-      failCount++;
     }
 
     /* test multi exception */
@@ -594,7 +544,6 @@ int main(int argc, char** argv) {
       Xtruct result;
       testClient.testMultiException(result, "Xception", "test 1");
       printf("  result\nFAILURE\n");
-      failCount++;
     } catch(Xception& e) {
       printf("  {%u, \"%s\"}\n", e.errorCode, e.message.c_str());
     }
@@ -604,7 +553,6 @@ int main(int argc, char** argv) {
       Xtruct result;
       testClient.testMultiException(result, "Xception2", "test 2");
       printf("  result\nFAILURE\n");
-      failCount++;
 
     } catch(Xception2& e) {
       printf("  {%u, {\"%s\"}}\n", e.errorCode, e.struct_thing.string_thing.c_str());
@@ -617,7 +565,6 @@ int main(int argc, char** argv) {
       printf("  {{\"%s\"}}\n", result.string_thing.c_str());
     } catch(...) {
       printf("  exception\nFAILURE\n");
-      failCount++;
     }
 
     /* test oneway void */
@@ -628,7 +575,6 @@ int main(int argc, char** argv) {
         uint64_t elapsed = now() - startOneway;
         if (elapsed > 200 * 1000) { // 0.2 seconds
             printf("  FAILURE - took %.2f ms\n", (double)elapsed/1000.0);
-            failCount++;
         } else {
             printf("  success - took %.2f ms\n", (double)elapsed/1000.0);
         }
@@ -648,8 +594,6 @@ int main(int argc, char** argv) {
     printf("re-test testI32(-1)");
     i32 = testClient.testI32(-1);
     printf(" = %d\n", i32);
-    if (i32 != -1)
-        failCount++;
 
 
     uint64_t stop = now();
@@ -677,5 +621,5 @@ int main(int argc, char** argv) {
   printf("Max time: %"PRIu64" us\n", time_max);
   printf("Avg time: %"PRIu64" us\n", time_avg);
 
-  return failCount;
+  return 0;
 }

@@ -1,22 +1,5 @@
 #!/usr/bin/env php
 <?php
-
-namespace tutorial\php;
-
-error_reporting(E_ALL);
-
-require_once __DIR__.'/../../lib/php/lib/Thrift/ClassLoader/ThriftClassLoader.php';
-
-use Thrift\ClassLoader\ThriftClassLoader;
-
-$GEN_DIR = realpath(dirname(__FILE__).'/..').'/gen-php';
-
-$loader = new ThriftClassLoader();
-$loader->registerNamespace('Thrift', __DIR__ . '/../../lib/php/lib');
-$loader->registerDefinition('shared', $GEN_DIR);
-$loader->registerDefinition('tutorial', $GEN_DIR);
-$loader->register();
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
@@ -36,11 +19,29 @@ $loader->register();
  * under the License.
  */
 
-use Thrift\Protocol\TBinaryProtocol;
-use Thrift\Transport\TSocket;
-use Thrift\Transport\THttpClient;
-use Thrift\Transport\TBufferedTransport;
-use Thrift\Exception\TException;
+$GLOBALS['THRIFT_ROOT'] = '../../lib/php/src';
+
+require_once $GLOBALS['THRIFT_ROOT'].'/Thrift.php';
+require_once $GLOBALS['THRIFT_ROOT'].'/protocol/TBinaryProtocol.php';
+require_once $GLOBALS['THRIFT_ROOT'].'/transport/TSocket.php';
+require_once $GLOBALS['THRIFT_ROOT'].'/transport/THttpClient.php';
+require_once $GLOBALS['THRIFT_ROOT'].'/transport/TBufferedTransport.php';
+
+/**
+ * Suppress errors in here, which happen because we have not installed into
+ * $GLOBALS['THRIFT_ROOT'].'/packages/tutorial' like we are supposed to!
+ *
+ * Normally we would only have to include Calculator.php which would properly
+ * include the other files from their packages/ folder locations, but we
+ * include everything here due to the bogus path setup.
+ */
+error_reporting(E_NONE);
+$GEN_DIR = '../gen-php';
+require_once $GEN_DIR.'/shared/SharedService.php';
+require_once $GEN_DIR.'/shared/shared_types.php';
+require_once $GEN_DIR.'/tutorial/Calculator.php';
+require_once $GEN_DIR.'/tutorial/tutorial_types.php';
+error_reporting(E_ALL);
 
 try {
   if (array_search('--http', $argv)) {
@@ -50,7 +51,7 @@ try {
   }
   $transport = new TBufferedTransport($socket, 1024, 1024);
   $protocol = new TBinaryProtocol($transport);
-  $client = new \tutorial\CalculatorClient($protocol);
+  $client = new CalculatorClient($protocol);
 
   $transport->open();
 
@@ -60,20 +61,20 @@ try {
   $sum = $client->add(1,1);
   print "1+1=$sum\n";
 
-  $work = new \tutorial\Work();
+  $work = new tutorial_Work();
 
-  $work->op = \tutorial\Operation::DIVIDE;
+  $work->op = tutorial_Operation::DIVIDE;
   $work->num1 = 1;
   $work->num2 = 0;
 
   try {
     $client->calculate(1, $work);
     print "Whoa! We can divide by zero?\n";
-  } catch (\tutorial\InvalidOperation $io) {
+  } catch (tutorial_InvalidOperation $io) {
     print "InvalidOperation: $io->why\n";
   }
 
-  $work->op = \tutorial\Operation::SUBTRACT;
+  $work->op = tutorial_Operation::SUBTRACT;
   $work->num1 = 15;
   $work->num2 = 10;
   $diff = $client->calculate(1, $work);

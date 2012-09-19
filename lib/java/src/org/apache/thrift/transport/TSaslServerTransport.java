@@ -19,7 +19,6 @@
 
 package org.apache.thrift.transport;
 
-import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -159,8 +158,8 @@ public class TSaslServerTransport extends TSaslTransport {
      * This is the implementation of the awful hack described above.
      * <code>WeakHashMap</code> is used to ensure that we don't leak memory.
      */
-    private static Map<TTransport, WeakReference<TSaslServerTransport>> transportMap =
-      Collections.synchronizedMap(new WeakHashMap<TTransport, WeakReference<TSaslServerTransport>>());
+    private static Map<TTransport, TSaslServerTransport> transportMap =
+      Collections.synchronizedMap(new WeakHashMap<TTransport, TSaslServerTransport>());
 
     /**
      * Mapping from SASL mechanism name -> all the parameters required to
@@ -208,22 +207,21 @@ public class TSaslServerTransport extends TSaslTransport {
      */
     @Override
     public TTransport getTransport(TTransport base) {
-      WeakReference<TSaslServerTransport> ret = transportMap.get(base);
-      if (ret == null || ret.get() == null) {
+      TSaslServerTransport ret = transportMap.get(base);
+      if (ret == null) {
         LOGGER.debug("transport map does not contain key", base);
-        ret = new WeakReference<TSaslServerTransport>(new TSaslServerTransport(serverDefinitionMap, base));
+        ret = new TSaslServerTransport(serverDefinitionMap, base);
         try {
-          ret.get().open();
+          ret.open();
         } catch (TTransportException e) {
           LOGGER.debug("failed to open server transport", e);
           throw new RuntimeException(e);
         }
-        transportMap.put(base, ret); // No need for putIfAbsent().
-                                     // Concurrent calls to getTransport() will pass in different TTransports.
+        transportMap.put(base, ret);
       } else {
         LOGGER.debug("transport map does contain key {}", base);
       }
-      return ret.get();
+      return ret;
     }
   }
 }

@@ -19,8 +19,8 @@
 
 #include <algorithm>
 #include <boost/test/auto_unit_test.hpp>
-#include <thrift/transport/TBufferTransports.h>
-#include <thrift/transport/TShortReadTransport.h>
+#include <transport/TBufferTransports.h>
+#include <transport/TShortReadTransport.h>
 
 using std::string;
 using boost::shared_ptr;

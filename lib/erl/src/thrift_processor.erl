@@ -32,42 +32,25 @@ init({_Server, ProtoGen, Service, Handler}) when is_function(ProtoGen, 0) ->
                            service = Service,
                            handler = Handler}).
 
-loop(State0 = #thrift_processor{protocol  = Proto0,
-                                handler = Handler}) ->
+loop(State0 = #thrift_processor{protocol  = Proto0}) ->
     {Proto1, MessageBegin} = thrift_protocol:read(Proto0, message_begin),
     State1 = State0#thrift_processor{protocol = Proto1},
     case MessageBegin of
         #protocol_message_begin{name = Function,
                                 type = ?tMessageType_CALL,
                                 seqid = Seqid} ->
-            case handle_function(State1, list_to_atom(Function), Seqid) of
-                {State2, ok} -> loop(State2);
-                {_State2, {error, Reason}} ->
-                    Handler:handle_error(list_to_atom(Function), Reason),
-                    thrift_protocol:close_transport(Proto1),
-                    ok
-            end;
+            {State2, ok} = handle_function(State1, list_to_atom(Function), Seqid),
+            loop(State2);
         #protocol_message_begin{name = Function,
                                 type = ?tMessageType_ONEWAY, 
                                 seqid = Seqid} ->
-            case handle_function(State1, list_to_atom(Function), Seqid) of
-                {State2, ok} -> loop(State2);
-                {_State2, {error, Reason}} ->
-                    Handler:handle_error(list_to_atom(Function), Reason),
-                    thrift_protocol:close_transport(Proto1),
-                    ok
-            end;
-        {error, timeout = Reason} ->
-            Handler:handle_error(undefined, Reason),
+            {State2, ok} = handle_function(State1, list_to_atom(Function), Seqid),
+            loop(State2);
+        {error, timeout} ->
             thrift_protocol:close_transport(Proto1),
             ok;
-        {error, closed = Reason} ->
+        {error, closed} ->
             %% error_logger:info_msg("Client disconnected~n"),
-            Handler:handle_error(undefined, Reason),
-            thrift_protocol:close_transport(Proto1),
-            exit(shutdown);
-        {error, Reason} ->
-            Handler:handle_error(undefined, Reason),
             thrift_protocol:close_transport(Proto1),
             exit(shutdown)
     end.
@@ -192,16 +175,11 @@ handle_error(State, Function, Error, Seqid) ->
     send_reply(State, Function, ?tMessageType_EXCEPTION, Reply, Seqid).
 
 send_reply(State = #thrift_processor{protocol = Proto0}, Function, ReplyMessageType, Reply, Seqid) ->
-    try
-        {Proto1, ok} = thrift_protocol:write(Proto0, #protocol_message_begin{
-                                               name = atom_to_list(Function),
-                                               type = ReplyMessageType,
-                                               seqid = Seqid}),
-        {Proto2, ok} = thrift_protocol:write(Proto1, Reply),
-        {Proto3, ok} = thrift_protocol:write(Proto2, message_end),
-        {Proto4, ok} = thrift_protocol:flush_transport(Proto3),
-        {State#thrift_processor{protocol = Proto4}, ok}
-    catch
-        error:{badmatch, {_, {error, _} = Error}} ->
-            {State, Error}
-    end.
+    {Proto1, ok} = thrift_protocol:write(Proto0, #protocol_message_begin{
+                                           name = atom_to_list(Function),
+                                           type = ReplyMessageType,
+                                           seqid = Seqid}),
+    {Proto2, ok} = thrift_protocol:write(Proto1, Reply),
+    {Proto3, ok} = thrift_protocol:write(Proto2, message_end),
+    {Proto4, ok} = thrift_protocol:flush_transport(Proto3),
+    {State#thrift_processor{protocol = Proto4}, ok}.

@@ -18,16 +18,12 @@
 -- under the License.
 --
 
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main where
 
 
 import qualified Control.Exception
-import qualified Data.HashMap.Strict as Map
-import qualified Data.HashSet as Set
-import qualified Data.Vector as Vector
-
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 import qualified Network
 
 import Thrift
@@ -48,7 +44,7 @@ instance Iface.ThriftTest_Iface TestHandler where
     testVoid _ = return ()
 
     testString _ (Just s) = do
-        ThriftTestUtils.serverLog $ show s
+        ThriftTestUtils.serverLog s
         return s
 
     testString _ Nothing = do
@@ -172,7 +168,7 @@ client addr = do
     let ps = (BinaryProtocol to, BinaryProtocol to)
 
     v1 <- Client.testString ps "bya"
-    ThriftTestUtils.clientLog $ show v1
+    ThriftTestUtils.clientLog v1
 
     v2 <- Client.testByte ps 8
     ThriftTestUtils.clientLog $ show v2
@@ -204,7 +200,7 @@ client addr = do
     v11 <- Client.testStringMap ps (Map.fromList [("a","123"),("a b","with spaces "),("same","same"),("0","numeric key")])
     ThriftTestUtils.clientLog $ show v11
 
-    v12 <- Client.testList ps (Vector.fromList [1,2,3,4,5])
+    v12 <- Client.testList ps [1,2,3,4,5]
     ThriftTestUtils.clientLog $ show v12
 
     v13 <- Client.testSet ps (Set.fromList [1,2,3,4,5])

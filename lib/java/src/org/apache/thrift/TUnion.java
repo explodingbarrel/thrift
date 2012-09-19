@@ -17,14 +17,15 @@
  */
 package org.apache.thrift;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.nio.ByteBuffer;
 
+import org.apache.thrift.TUnion.TUnionStandardScheme;
 import org.apache.thrift.protocol.TField;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolException;
@@ -210,7 +211,7 @@ public abstract class TUnion<T extends TUnion<?,?>, F extends TFieldIdEnum> impl
     }
   }
   
-  private static class TUnionStandardScheme extends StandardScheme<TUnion> {
+  public static class TUnionStandardScheme extends StandardScheme<TUnion> {
 
     @Override
     public void read(TProtocol iprot, TUnion struct) throws TException {
@@ -249,12 +250,12 @@ public abstract class TUnion<T extends TUnion<?,?>, F extends TFieldIdEnum> impl
   }
   
   private static class TUnionTupleSchemeFactory implements SchemeFactory {
-    public TUnionTupleScheme getScheme() {
-      return new TUnionTupleScheme();
+    public TUnionStandardScheme getScheme() {
+      return new TUnionStandardScheme();
     }
   }
   
-  private static class TUnionTupleScheme extends TupleScheme<TUnion> {
+  public static class TUnionTupleScheme extends TupleScheme<TUnion> {
 
     @Override
     public void read(TProtocol iprot, TUnion struct) throws TException {

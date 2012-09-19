@@ -3,7 +3,6 @@ set -e
 
 ./configure \
   --without-cpp \
-  --without-c_glib \
   --without-java \
   --without-csharp \
   --without-python \
