@@ -23,4 +23,6 @@
 aclocal -I ./aclocal
 automake -a
 autoconf
-./configure --config-cache $*
+./configure --config-cache  --with-thriftpath=/opt/thrift/ --prefix=/opt/fb303  $*
+make
+make install
