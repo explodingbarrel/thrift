@@ -15,7 +15,7 @@ gen-*
 *.dll
 *_ReSharper*
 *.opensdf
-
+.DS_Store
 /Makefile
 /Makefile.in
 /aclocal/libtool.m4
@@ -36,7 +36,6 @@ gen-*
 /compiler/cpp/thrifty.h
 /compiler/cpp/version.h
 /config.*
-/configure
 /configure.lineno
 /configure.scan
 /contrib/fb303/Makefile
